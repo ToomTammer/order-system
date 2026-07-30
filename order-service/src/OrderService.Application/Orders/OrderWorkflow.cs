@@ -20,16 +20,25 @@ public class OrderWorkflow(
 
     public async Task<Order> CreateOrderAsync(Guid userId, string productId, int quantity, Guid correlationId, CancellationToken ct = default)
     {
-        var order = Order.Create(userId, productId, quantity);
-        orderRepository.Add(order);
+        try
+        {
+            var order = Order.Create(userId, productId, quantity);
+            orderRepository.Add(order);
 
-        var payload = JsonSerializer.Serialize(
-            new { orderId = order.Id, userId = order.UserId, productId = order.ProductId, quantity = order.Quantity },
-            EventJsonOptions.CamelCase);
-        outboxRepository.Add(OutboxMessage.Create(order.Id, EventTypes.OrderCreated, payload, correlationId));
+            var payload = JsonSerializer.Serialize(
+                new { orderId = order.Id, userId = order.UserId, productId = order.ProductId, quantity = order.Quantity },
+                EventJsonOptions.CamelCase);
+            outboxRepository.Add(OutboxMessage.Create(order.Id, EventTypes.OrderCreated, payload, correlationId));
 
-        await unitOfWork.SaveChangesAsync(ct);
-        return order;
+            await unitOfWork.SaveChangesAsync(ct);
+            return order;
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Error occurred while creating order");
+            throw;
+        }
+        
     }
 
     public Task<Order?> GetOrderAsync(Guid orderId, Guid callerUserId, CancellationToken ct = default) =>
