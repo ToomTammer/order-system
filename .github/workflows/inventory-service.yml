@@ -2,7 +2,7 @@ name: inventory-service
 
 on:
   push:
-    branches: [main]
+    branches: [master]
     paths:
       - "inventory-service/**"
       - ".github/workflows/inventory-service.yml"
