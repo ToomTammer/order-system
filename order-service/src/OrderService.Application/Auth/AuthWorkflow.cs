@@ -1,3 +1,4 @@
+using Microsoft.Extensions.Logging;
 using OrderService.Domain;
 using OrderService.Domain.Entity;
 using OrderService.Domain.IRepository;
@@ -9,7 +10,8 @@ public class AuthWorkflow(
     IRefreshTokenRepository refreshTokenRepository,
     IPasswordHasher passwordHasher,
     ITokenGenerator tokenGenerator,
-    IUnitOfWork unitOfWork) : IAuthWorkflow
+    IUnitOfWork unitOfWork,
+    ILogger<AuthWorkflow> logger) : IAuthWorkflow
 {
     private const int MinPasswordLength = 8;
     private static readonly TimeSpan RefreshTokenLifetime = TimeSpan.FromDays(30);
@@ -46,7 +48,9 @@ public class AuthWorkflow(
             await unitOfWork.SaveChangesAsync(ct);
             throw new InvalidCredentialsException();
         }
+        
 
+        logger.LogInformation("User {Username} logged in", user.Username);
         user.RecordSuccessfulLogin();
         return await IssueTokenPairAsync(user, ct);
     }
