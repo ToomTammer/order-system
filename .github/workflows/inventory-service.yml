@@ -45,6 +45,6 @@ jobs:
       - uses: actions/checkout@v4
       - run: npm install -g @railway/cli
       - name: Deploy to Railway
-        run: railway up --service inventory-service
+        run: railway up --service inventory-service --detach
         env:
           RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
