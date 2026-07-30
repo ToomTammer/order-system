@@ -1,0 +1,50 @@
+name: order-service
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "order-service/**"
+      - ".github/workflows/order-service.yml"
+  pull_request:
+    paths:
+      - "order-service/**"
+      - ".github/workflows/order-service.yml"
+
+defaults:
+  run:
+    working-directory: order-service
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "9.0.x"
+      - run: dotnet restore
+      - run: dotnet build --no-restore
+      - name: Unit tests
+        run: dotnet test tests/OrderService.Tests --no-build
+      - name: Integration tests (Testcontainers — Docker available natively on this runner)
+        run: dotnet test tests/OrderService.IntegrationTests --no-build
+
+  build-image:
+    needs: test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: docker build -t order-service:${{ github.sha }} .
+
+  deploy:
+    needs: build-image
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: npm install -g @railway/cli
+      - name: Deploy to Railway
+        run: railway up --service order-service
+        env:
+          RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}

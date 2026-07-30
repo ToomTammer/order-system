@@ -1,0 +1,48 @@
+basePath: /
+info:
+  contact: {}
+  description: HTTP API for inventory-service. Stock reservation itself is driven
+    by RabbitMQ events (order.created); this HTTP surface currently only exposes health
+    checks.
+  title: Inventory Service API
+  version: "1.0"
+paths:
+  /health/live:
+    get:
+      description: Returns 200 once the process is up. Does not check any downstream
+        dependency.
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 'status: live'
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Liveness probe
+      tags:
+      - health
+  /health/ready:
+    get:
+      description: Returns 200 only if both Postgres and RabbitMQ are reachable; 503
+        otherwise.
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 'status: ready'
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "503":
+          description: 'status: not ready, reason: ...'
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Readiness probe
+      tags:
+      - health
+swagger: "2.0"

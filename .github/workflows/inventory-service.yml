@@ -1,0 +1,50 @@
+name: inventory-service
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "inventory-service/**"
+      - ".github/workflows/inventory-service.yml"
+  pull_request:
+    paths:
+      - "inventory-service/**"
+      - ".github/workflows/inventory-service.yml"
+
+defaults:
+  run:
+    working-directory: inventory-service
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version: "1.22"
+      - run: go build ./...
+      - run: go vet ./...
+      - name: Unit tests
+        run: go test -race ./...
+      - name: Integration tests (Testcontainers — Docker available natively on this runner, no DinD workarounds needed)
+        run: go test -tags=integration ./integration/...
+
+  build-image:
+    needs: test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: docker build -t inventory-service:${{ github.sha }} .
+
+  deploy:
+    needs: build-image
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: npm install -g @railway/cli
+      - name: Deploy to Railway
+        run: railway up --service inventory-service
+        env:
+          RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
